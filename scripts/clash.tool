@@ -141,7 +141,7 @@ update_kernel() {
           echo ""
         else
           log "[error] gunzip ${file_kernel}.gz failed"  > ${CFM_logs_file}
-          log "[warning] periksa kembali url"
+          log "[warning] Please double check the url"
           if [ -f ${Clash_data_dir}/"${file_kernel}".gz.bak ]; then
             rm -rf ${Clash_data_dir}/"${file_kernel}".gz.bak
           else
@@ -155,7 +155,7 @@ update_kernel() {
         fi
        else
         log "[warning] gunzip ${file_kernel}.gz failed" 
-        log "[warning] pastikan ada koneksi internet" 
+        log "[warning] Please make sure there is an internet connection" 
         exit 1
       fi
     else
@@ -173,7 +173,7 @@ update_kernel() {
   if [ -f "${Clash_pid_file}" ] && [ ${flag} == true ]; then
     restart_clash
   else
-     log "[warning] Clash tidak dimulai ulang"
+     log "[warning] Clash does not restart"
   fi
 }
 
@@ -194,13 +194,13 @@ cgroup_limit() {
 }
 
 update_dashboard () {
-  url_dashboard="https://github.com/taamarin/yacd/archive/refs/heads/gh-pages.zip"
+  url_dashboard="https://github.com/MetaCubeX/Yacd-meta/archive/refs/heads/gh-pages.zip"
   file_dasboard="${Clash_data_dir}/dashboard.zip"
   rm -rf ${Clash_data_dir}/dashboard/dist
 
   curl -L -A 'clash' ${url_dashboard} -o ${file_dasboard} 2>&1
-  unzip -o  "${file_dasboard}" "yacd-gh-pages/*" -d ${Clash_data_dir}/dashboard >&2
-  mv -f ${Clash_data_dir}/dashboard/yacd-gh-pages ${Clash_data_dir}/dashboard/dist 
+  unzip -o  "${file_dasboard}" "Yacd-meta-gh-pages/*" -d ${Clash_data_dir}/dashboard >&2
+  mv -f ${Clash_data_dir}/dashboard/Yacd-meta-gh-pages ${Clash_data_dir}/dashboard/dist 
   rm -rf ${file_dasboard}
 }
 
@@ -224,10 +224,10 @@ dnstt_client() {
          fi
       else
         log "[warning] ${dnstt_bin_name} tidak aktif," 
-        log "[warning] 'nsdomain' & 'pubkey' kosong," 
+        log "[warning] 'nsdomain' & 'pubkey' are empty," 
       fi
     else
-      log "[error] kernel ${dnstt_bin_name} tidak ada."
+      log "[error] kernel ${dnstt_bin_name} does not exist."
     fi
   fi
 }

@@ -45,7 +45,7 @@ use_clash() {
       exit 1
     fi
   fi
-  log "[info] konfigurasi ${Clash_config_file}。"
+  log "[info] configuration ${Clash_config_file}。"
 }
 
 ceks_clash() {
@@ -187,11 +187,11 @@ cgroup_limit() {
 start_clash() {
   dow_config
   replace_kernel
-  echo $(date) > $CFM_logs_file
-  echo "$(${Clash_bin_path} -v)" >> $CFM_logs_file
   echo "Clash for Magisk v2.5.1" > /dev/null
+  echo "$(${Clash_bin_path} -v)" >> $CFM_logs_file
+  echo $(date) > $CFM_logs_file
   echo "CPU: % | RES: kb" >> $CFM_logs_file
-  echo "━━━━━━━━━━━━━━━━━━━━━━━━━" >> $CFM_logs_file
+  echo "━━━━━━━━━━━━━━━━━━━━━━━" >> $CFM_logs_file
   if [ "${ipv6}" = "false" ] ; then
     echo 0 > /proc/sys/net/ipv6/conf/all/accept_ra
     echo 0 > /proc/sys/net/ipv6/conf/wlan0/accept_ra

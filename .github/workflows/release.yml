@@ -3,7 +3,7 @@ name: release
 on:
   push:
     tags:
-      - "v*"
+      - v*
 
 jobs:
   build:
@@ -13,10 +13,12 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: run build.sh
+        if: startsWith(github.ref, 'refs/tags/')
         run: sh build.sh
 
       - name: upload release
         uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
         with:
           tag_name: ${{ github.ref_name }}
           files: Clash_for_Magisk-v*.zip

@@ -20,7 +20,7 @@ usage() {
     do
         getmemory &> /dev/null
         [ ! -f /data/clash/run/clash.pid ] && break
-        now=$(date +%s)
+        now=$(date +%S)
         sleep $(( $interval - $now % $interval ))
     done
 }

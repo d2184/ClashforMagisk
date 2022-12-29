@@ -85,8 +85,8 @@ fi
 ui_print "- Create resolv.conf"
 if [ ! -f "${dns_path}/resolv.conf" ] ; then
     touch ${MODPATH}${dns_path}/resolv.conf
-    echo nameserver 8.8.8.8 > ${MODPATH}${dns_path}/resolv.conf
-    echo nameserver 1.1.1.1 >> ${MODPATH}${dns_path}/resolv.conf
+    echo nameserver 8.8.4.4 > ${MODPATH}${dns_path}/resolv.conf
+    echo nameserver 1.0.0.1 >> ${MODPATH}${dns_path}/resolv.conf
     echo nameserver 9.9.9.9 >> ${MODPATH}${dns_path}/resolv.conf
     echo nameserver 149.112.112.112 >> ${MODPATH}${dns_path}/resolv.conf
 fi
