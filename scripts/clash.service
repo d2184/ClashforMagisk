@@ -150,7 +150,7 @@ cgroup_limit() {
 start_clash() {
   dow_config
   replace_kernel
-  echo "Clash for Magisk v2.5.4" > /dev/null
+  echo "Clash for Magisk v3.0" > /dev/null
   echo "$(${Clash_bin_path} -v)" >> ${CFM_logs_file}
   echo $(date) > ${CFM_logs_file}
   echo "CPU: % | RES: kb" >> ${CFM_logs_file}
