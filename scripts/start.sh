@@ -34,7 +34,7 @@ then
     then
         start_service
     fi
-    if [ "$?" = 0 ]
+    if [ "$?" == 0 ]
     then
        ulimit -SHn 1000000
        inotifyd ${scripts_dir}/clash.inotify ${moddir} &>> /dev/null &

@@ -128,7 +128,6 @@ mv ${clash_data_dir_kernel}/setcap ${MODPATH}${bin_path}/
 mv ${clash_data_dir_kernel}/getpcaps ${MODPATH}${bin_path}/
 mv ${clash_data_dir_kernel}/getcap ${MODPATH}${bin_path}/
 mv ${clash_data_dir}/scripts/clash.config ${clash_data_dir}/
-mv ${clash_data_dir}/scripts/dnstt/dnstt-client ${clash_data_dir_kernel}/
 
 if [ ! -f "${bin_path}/ss" ] ; then
     mv ${clash_data_dir_kernel}/ss ${MODPATH}${bin_path}/
@@ -171,7 +170,6 @@ set_perm  ${clash_data_dir}/scripts/clash.cron 0  0  0755
 set_perm  ${clash_data_dir}/scripts/start.sh 0  0  0755
 set_perm  ${clash_data_dir}/scripts/usage.sh 0  0  0755
 set_perm  ${clash_data_dir}/clash.config ${uid} ${gid} 0755
-set_perm  ${clash_data_dir}/kernel/dnstt-client  0  0  0755
 set_perm  ${clash_service_dir}/clash_service.sh  0  0  0755
 sleep 1
 ui_print "- Installation is complete, reboot your device"

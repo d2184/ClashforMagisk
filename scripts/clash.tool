@@ -3,6 +3,7 @@
 scripts=$(realpath $0)
 scripts_dir=$(dirname ${scripts})
 source /data/clash/clash.config
+user_agent="ClashForMagisk"
 
 find_packages_uid() {
   echo -n "" > ${appuid_file} 
@@ -12,7 +13,7 @@ find_packages_uid() {
     done
   else
     log "[info] enhanced-mode: ${Clash_enhanced_mode} "
-    log "[info] if you want to use whitelist and blacklist, use enhanced-mode: redr-host"
+    log "[info] if you want to use whitelist and blacklist, use enhanced-mode: redir-host"
   fi
 }
 
@@ -22,9 +23,9 @@ restart_clash() {
   sleep 0.5
   ${scripts_dir}/clash.service -s && ${scripts_dir}/clash.iptables -s
   if [ "$?" == "0" ] ; then
-    log "[info] $(date), Clash restart"
+    log "[info] $(date), clash restarted"
   else
-    log "[error] $(date), Clash Failed to restart."
+    log "[error] $(date), clash failed to restart."
   fi
 }
 
@@ -32,38 +33,44 @@ update_file() {
     file="$1"
     file_bak="${file}.bak"
     update_url="$2"
-    if [ -f ${file} ] ; then
+    if [ -f ${file} ]; then
       mv -f ${file} ${file_bak}
     fi
-    echo "/data/adb/magisk/busybox wget --no-check-certificate ${update_url} -o ${file}"
-    /data/adb/magisk/busybox wget --no-check-certificate ${update_url} -O ${file} 2>&1
-    sleep 0.5
-    if [ -f "${file}" ] ; then
-      echo ""
+    
+    if [ "${signal}" == "o" ]; then
+      request="/data/adb/magisk/busybox wget"
+      request+=" --no-check-certificate"
+      request+=" --user-agent ${user_agent}"
+      request+=" -O ${file}"
+      request+=" ${update_url}"
+      echo $request
+      $request 2>&1
     else
-      if [ -f "${file_bak}" ] ; then
+      echo "/data/adb/magisk/busybox wget --no-check-certificate ${update_url} -o ${file}"
+      /data/adb/magisk/busybox wget --no-check-certificate ${update_url} -O ${file} 2>&1
+    fi
+    
+    sleep 0.5
+    if [ -f "${file}" ]; then
+      echo -e "\nupdate success"
+    else
+      if [ -f "${file_bak}" ]; then
+        echo -e "\nfailed to update and restore old files"
         mv ${file_bak} ${file}
       fi
     fi
 }
 
 update_geo() {
-  if [ "${auto_updateGeoX}" == "true" ] ; then
-     update_file ${Clash_GeoIP_file} ${GeoIP_dat_url}
-     update_file ${Clash_GeoSite_file} ${GeoSite_url}
-     if [ "$?" = "0" ] ; then
-       flag=false
-     fi
-  fi
+  update_file ${Clash_GeoIP_file} ${GeoIP_dat_url}
+  echo -e "\n"
+  update_file ${Clash_GeoSite_file} ${GeoSite_url}
+  echo -e "\n"
 
-  if [ ${auto_updateSubcript} == "true" ] ; then
-     update_file ${Clash_config_file} ${Subcript_url}
-     if [ "$?" = "0" ] ; then
-       flag=true
-     fi
-  fi
-
-  if [ -f "${Clash_pid_file}" ] && [ ${flag} == true ] ; then
+  rm -rf ${Clash_data_dir}/*mmdb.bak 
+  rm -rf ${Clash_data_dir}/*dat.bak
+  
+  if [ -f "${Clash_pid_file}" ]; then
     restart_clash
   fi
 }
@@ -71,7 +78,7 @@ update_geo() {
 config_online() {
   clash_pid=$(cat ${Clash_pid_file})
   match_count=0
-  log "[warning] Download Config online" > ${CFM_logs_file}
+  log "[warning] download config online" > ${CFM_logs_file}
   update_file ${Clash_config_file} ${Subcript_url}
   sleep 0.5
   if [ -f "${Clash_config_file}" ] ; then
@@ -82,8 +89,12 @@ config_online() {
     log "[info] download succes."
     exit 0
   else
-    log "[error] download failed, Make sure the Url is not empty"
+    log "[error] download failed, make sure the url is not empty"
     exit 1
+  fi
+  
+  if [ -f "${Clash_pid_file}" ]; then
+    restart_clash
   fi
 }
 
@@ -111,26 +122,31 @@ update_kernel() {
   if [ "${use_premium}" == "false" ] ; then
     if [ "${meta_alpha}" == "false" ] ; then
       tag_meta=$(/data/adb/magisk/busybox wget --no-check-certificate -qO- ${url_meta} | grep -oE "v[0-9]+\.[0-9]+\.[0-9]+" | head -1)
-      filename="${file_kernel}-${platform}-${arch}-${tag_meta}"
+      filename="${file_kernel}-${platform}-${arch}-cgo-${tag_meta}"
       update_file "${Clash_data_dir}/${file_kernel}.gz" "${url_meta}/download/${tag_meta}/${filename}.gz"
-        if [ "$?" = "0" ]
-        then
+        if [ "$?" == "0" ]; then
           flag=false
         fi
     else
       tag_meta=$(/data/adb/magisk/busybox wget --no-check-certificate -qO- ${url_meta}/expanded_assets/${tag} | grep -oE "${tag_name}" | head -1)
-      filename="${file_kernel}-${platform}-${arch}-${tag_meta}"
+      filename="${file_kernel}-${platform}-${arch}-cgo-${tag_meta}"
       update_file "${Clash_data_dir}/${file_kernel}.gz" "${url_meta}/download/${tag}/${filename}.gz"
-        if [ "$?" = "0" ]
-        then
+        if [ "$?" == "0" ]; then
           flag=false
         fi
     fi
   else
-    filename=$(/data/adb/magisk/busybox wget --no-check-certificate -qO- "${url_premium}/expanded_assets/premium" | grep -oE "clash-${platform}-${arch}-[0-9]+.[0-9]+.[0-9]+" | head -1)
-    update_file "${Clash_data_dir}/${file_kernel}.gz" "${url_premium}/download/premium/${filename}.gz"
-    if [ "$?" = "0" ] ; then
-      flag=false
+    if [ "${dev}" != "false" ]; then
+      update_file "${Clash_data_dir}/${file_kernel}.gz" "https://release.dreamacro.workers.dev/latest/clash-linux-${arch}-latest.gz"
+        if [ "$?" == "0" ]; then
+          flag=false
+        fi
+    else
+      filename=$(/data/adb/magisk/busybox wget --no-check-certificate -qO- "${url_premium}/expanded_assets/premium" | grep -oE "clash-${platform}-${arch}-[0-9]+.[0-9]+.[0-9]+" | head -1)
+      update_file "${Clash_data_dir}/${file_kernel}.gz" "${url_premium}/download/premium/${filename}.gz"
+        if [ "$?" == "0" ]; then
+          flag=false
+        fi
     fi
   fi
 
@@ -141,21 +157,20 @@ update_kernel() {
           echo ""
         else
           log "[error] gunzip ${file_kernel}.gz failed"  > ${CFM_logs_file}
-          log "[warning] Please double check the url"
+          log "[warning] please double check the url"
           if [ -f "${Clash_data_dir}/${file_kernel}.gz.bak" ] ; then
             rm -rf "${Clash_data_dir}/${file_kernel}.gz.bak"
           else
             rm -rf "${Clash_data_dir}/${file_kernel}.gz"
           fi
           if [ -f ${Clash_run_path}/clash.pid ] ; then
-            log "[info] Clash service is running (PID: $(cat ${Clash_pid_file}))"
-            log "[info] Connect"
+            log "[info] clash service is running (PID: $(cat ${Clash_pid_file}))"
           fi
           exit 1
         fi
        else
         log "[warning] gunzip ${file_kernel}.gz failed" 
-        log "[warning] Please make sure there is an internet connection" 
+        log "[warning] please make sure there is an internet connection" 
         exit 1
       fi
     else
@@ -166,14 +181,14 @@ update_kernel() {
 
   mv -f "${Clash_data_dir}/${file_kernel}" ${Clash_data_dir}/kernel/lib
 
-  if [ "$?" = "0" ] ; then
+  if [ "$?" == "0" ] ; then
     flag=true
   fi
 
   if [ -f "${Clash_pid_file}" ] && [ ${flag} == true ] ; then
     restart_clash
   else
-     log "[warning] Clash does not restart"
+     log "[warning] clash does not restart"
   fi
 }
 
@@ -193,41 +208,36 @@ cgroup_limit() {
   && log "[info] ${Cgroup_memory_path}/clash/memory.limit_in_bytes"
 }
 
-update_dashboard () {
-  url_dashboard="https://github.com/MetaCubeX/Yacd-meta/archive/refs/heads/gh-pages.zip"
-  file_dasboard="${Clash_data_dir}/dashboard.zip"
-  rm -rf ${Clash_data_dir}/dashboard/dist
+update_dashboard() {
+  if [ "${use_premium}" == "false" ]; then
+    url_dashboard="https://github.com/MetaCubeX/Yacd-meta/archive/refs/heads/gh-pages.zip"
+    file_dashboard="${Clash_data_dir}/dashboard.zip"
 
-  /data/adb/magisk/busybox wget --no-check-certificate ${url_dashboard} -O ${file_dasboard} 2>&1
-  unzip -o  "${file_dasboard}" "Yacd-meta-gh-pages/*" -d ${Clash_data_dir}/dashboard >&2
-  mv -f ${Clash_data_dir}/dashboard/Yacd-meta-gh-pages ${Clash_data_dir}/dashboard/dist
-  rm -rf ${file_dasboard}
-}
-
-dnstt_client() {
-  if [ "${run_dnstt}" == "1" ] ; then
-    if [ -f ${dnstt_client_bin} ] ; then
-      chmod 0700 ${dnstt_client_bin}
-      chown 0:3005 ${dnstt_client_bin}
-      if [ ! ${nsdomain} == "" ] && [ ! ${pubkey} == "" ] ; then
-         nohup ${busybox_path} setuidgid 0:3005 ${dnstt_client_bin} -udp ${dns_for_dnstt}:53 -pubkey ${pubkey} ${nsdomain} 127.0.0.1:9553 > /dev/null 2>&1 &
-         echo -n $! > ${Clash_run_path}/dnstt.pid
-         sleep 1
-         local dnstt_pid=$(cat ${Clash_run_path}/dnstt.pid 2> /dev/null)
-         if (cat /proc/$dnstt_pid/cmdline | grep -q ${dnstt_bin_name}); then
-           log "[info] ${dnstt_bin_name} is enable."
-         else
-           log "[error] ${dnstt_bin_name} The configuration is incorrect,"
-           log "[error] the startup fails, and the following is the error"
-           kill -9 $(cat ${Clash_run_path}/dnstt.pid)
-         fi
-      else
-        log "[warning] ${dnstt_bin_name} tidak aktif," 
-        log "[warning] (nsdomain) & (pubkey) are empty," 
-      fi
+    /data/adb/magisk/busybox wget --no-check-certificate ${url_dashboard} -O ${file_dashboard} 2>&1
+    if [ -e ${file_dashboard} ]; then
+      rm -rf ${Clash_data_dir}/dashboard/dist
     else
-      log "[error] kernel ${dnstt_bin_name} does not exist."
+      echo "update dashboard failed !!!"
+      exit 1
     fi
+    unzip -o  "${file_dashboard}" "Yacd-meta-gh-pages/*" -d ${Clash_data_dir}/dashboard >&2
+    mv -f ${Clash_data_dir}/dashboard/Yacd-meta-gh-pages ${Clash_data_dir}/dashboard/dist
+    rm -rf ${file_dashboard}
+  else
+    url_dashboard="https://github.com/haishanh/yacd/archive/refs/heads/gh-pages.zip"
+    file_dashboard="${Clash_data_dir}/dashboard.zip"
+    rm -rf ${Clash_data_dir}/dashboard/dist
+
+    /data/adb/magisk/busybox wget --no-check-certificate ${url_dashboard} -O ${file_dashboard} 2>&1
+    if [ -e ${file_dashboard} ]; then
+      rm -rf ${Clash_data_dir}/dashboard/dist
+    else
+      echo "update dashboard failed !!!"
+      exit 1
+    fi
+    unzip -o  "${file_dashboard}" "yacd-gh-pages/*" -d ${Clash_data_dir}/dashboard >&2
+    mv -f ${Clash_data_dir}/dashboard/yacd-gh-pages ${Clash_data_dir}/dashboard/dist
+    rm -rf ${file_dashboard}
   fi
 }
 
@@ -253,12 +263,7 @@ while getopts ":dfklopsv" signal ; do
       ;;
     s)
       update_geo
-      rm -rf ${Clash_data_dir}/*dat.bak && exit 1
       ;;
-    v)
-      dnstt_client
-      ;;
-
     ?)
       echo ""
       ;;
